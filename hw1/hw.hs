@@ -53,3 +53,84 @@ steps n = Exp
             (Exp
                 (Calls "vector" (Values (n-1) (Values n (Values (n-1) (Value (n-1))))))
                 (steps (n-1)))
+
+-- (a) Define the abstract syntax for the above language as a Haskell data type.
+data Link     =  S (Int, Int) (Int, Int)
+              deriving (Show, Eq)
+
+data Links    = Ls Link Links | L Link
+              deriving (Show, Eq)
+
+data GateFn   = And
+              | Or
+              | Xor
+              | Not
+              deriving (Show, Eq)
+
+data Gates    = G (Int, GateFn) Gates
+              | Noop
+              deriving (Show, Eq)
+
+data Circuit  = C Gates Links
+              deriving (Show, Eq)
+
+circuit :: Circuit
+circuit = C(G(1, Xor)(G(2, And)Noop))(Ls(S(1,1)(2,1))(L(S(1,2)(2,2))))
+-- circuit = C
+--             (G
+--               (1, Xor)
+--               (G
+--                 (2, And)
+--                 Noop)
+--             )
+--             (Ls
+--               (S
+--                 (1,1)
+--                 (2,1)
+--               )
+--               (L
+--                 (S
+--                   (1,2)
+--                   (2,2)
+--                 )
+--               )
+--             )
+
+-- ppLink :: Link -> String
+-- ppLink link = "S (int, int) (int, int)"
+
+ppGateFn :: GateFn -> String
+ppGateFn And = "And"
+ppGateFn Or = "Or"
+ppGateFn Xor = "Xor"
+ppGateFn Not =  "Not"
+
+ppGates :: Gates -> String
+ppGates Noop = ""
+ppGates (G (x, fn) gates) = "(" ++ show x ++ ", " ++ (ppGateFn fn) ++ ")" ++ ppGates gates
+
+ppLink :: Link -> String
+ppLink (S (p1, g1) (p2, g2)) = "From ("++ show p1 ++ ", " ++ show g1 ++") to (" ++ show p2 ++", "++ show g2 ++ ")"
+
+ppLinks :: Links -> String
+ppLinks (Ls link links) = (ppLink link) ++ (ppLinks links)
+ppLinks (L link) = ppLink link
+
+ppCircuit :: Circuit -> String
+ppCircuit (C gs ls) = (ppGates gs) ++ (ppLinks ls)
+
+-- ppGates i fn = "(" ++ show i ++ ", " ++ (ppGateFn fn) ++ ")"
+
+-- ppGates :: Gates -> String
+-- ppGates options = "syntax"
+--
+-- ppCircuit :: Circuit -> String
+-- ppCircuit options = "syntax"
+
+-- circuit :: Int -> Links
+-- circuit 1 = Ls (S (1,2) (3,4)) (L (S (5,6) (7,8)))
+
+-- data gate =
+-- data circuit = Gates links
+-- (b) Represent the half adder circuit in abstract syntax, that is, as a Haskell data type value.
+-- (c) Define a Haskell function that implements a pretty printer for the abstract syntax.
