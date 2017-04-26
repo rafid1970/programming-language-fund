@@ -6,6 +6,8 @@
 
 module MiniLogo where
 
+-- 1. (a) Define the abstract syntax for Mini Logo as a Haskell data type
+
 data Cmd  = Pen Mode              -- Pen state
           | MoveTo Pos Pos        -- Move Pen
           | Def String Pars Cmd   -- Define a macro
@@ -26,6 +28,9 @@ data Pars = Params String Pars | Param String
 data Vals = Values Int Vals | Value Int
      deriving (Show, Eq)
 
+--  1. (b) Write a Mini Logo macro vector that draws a line from a given position (x1,y1) to a given position (x2,y2)
+--  and represent the macro in abstract syntax, that is, as a Haskell data type value.
+
 -- Concrete:
 -- def vector (x1, y1, x2, y2) Pen Up; MoveTo x1 y1; Pen Down; MoveTo x2 y2; Pen Up;
 
@@ -42,6 +47,9 @@ vector = Def "vector" (Params "x1" (Params "y1" (Params "x2" (Param "y2"))))
               )
             )
           )
+
+-- 1. (c) Define a Haskell function steps :: Int -> Cmd that constructs a Mini Logo program which draws a stair of n
+-- steps.
 
 steps :: Int -> Cmd
 steps 0 = Nop
@@ -74,6 +82,7 @@ data Gates    = G (Int, GateFn) Gates
 data Circuit  = C Gates Links
               deriving (Show, Eq)
 
+-- (b) Represent the half adder circuit in abstract syntax, that is, as a Haskell data type value.
 circuit :: Circuit
 circuit = C(G(1, Xor)(G(2, And)Noop))(Ls(S(1,1)(2,1))(L(S(1,2)(2,2))))
 -- circuit = C
@@ -96,8 +105,7 @@ circuit = C(G(1, Xor)(G(2, And)Noop))(Ls(S(1,1)(2,1))(L(S(1,2)(2,2))))
 --               )
 --             )
 
--- ppLink :: Link -> String
--- ppLink link = "S (int, int) (int, int)"
+-- (c) Define a Haskell function that implements a pretty printer for the abstract syntax.
 
 ppGateFn :: GateFn -> String
 ppGateFn And = "And"
@@ -118,19 +126,3 @@ ppLinks (L link) = ppLink link
 
 ppCircuit :: Circuit -> String
 ppCircuit (C gs ls) = (ppGates gs) ++ (ppLinks ls)
-
--- ppGates i fn = "(" ++ show i ++ ", " ++ (ppGateFn fn) ++ ")"
-
--- ppGates :: Gates -> String
--- ppGates options = "syntax"
---
--- ppCircuit :: Circuit -> String
--- ppCircuit options = "syntax"
-
--- circuit :: Int -> Links
--- circuit 1 = Ls (S (1,2) (3,4)) (L (S (5,6) (7,8)))
-
--- data gate =
--- data circuit = Gates links
--- (b) Represent the half adder circuit in abstract syntax, that is, as a Haskell data type value.
--- (c) Define a Haskell function that implements a pretty printer for the abstract syntax.
