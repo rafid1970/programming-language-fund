@@ -126,3 +126,31 @@ ppLinks (L link) = ppLink link
 
 ppCircuit :: Circuit -> String
 ppCircuit (C gs ls) = (ppGates gs) ++ (ppLinks ls)
+
+data Expr = Number Int
+          | Plus Expr Expr
+          | Times Expr Expr
+          | Neg Expr
+          deriving (Show, Eq)
+
+data Op  = Add | Multiply | Negate
+         deriving (Show, Eq)
+data Exp = N Int | Apply Op [Exp]
+         deriving (Show, Eq)
+
+-- 3) a. represent the expression -(3+4)*7 in the alternative abstract syntax.
+equation :: Exp
+equation = Apply Multiply [N 7, Apply Negate [Apply Add [N 3, N 4]]]
+
+-- 3) b. What are the advantages or disadvantages of either representation?
+-- One advantage of using the second abstract syntax is that by seperating operations and expressions into two data types so it is easier to interpret
+-- what's occuring at each step. One advantage of using the first abstract syntax is by containing in one data type we're creating a more succinct
+-- definition.
+
+-- 3) c. Define a function translate :: Expr -> Exp that translates expressions given in the first abstract syntax into
+--       equivalent expressions in the second abstract syntax.
+translate :: Expr -> Exp
+translate (Number n)        = (N n)
+translate (Plus exp1 exp2)  = Apply Add [(translate exp1), (translate exp2)]
+translate (Times exp1 exp2) = Apply Multiply [(translate exp1), (translate exp2)]
+translate (Neg exp1)        = Apply Negate [(translate exp1)]
