@@ -2,6 +2,7 @@
   TEAM MEMBERS:
     - Shane Barrantes
     - Ty Skelton
+    - Griffin Gonsalves
 -}
 
 module MiniLogo where
@@ -126,6 +127,7 @@ ppLinks (L link) = ppLink link
 
 ppCircuit :: Circuit -> String
 ppCircuit (C gs ls) = (ppGates gs) ++ (ppLinks ls)
+
 
 data Expr = Number Int
           | Plus Expr Expr
