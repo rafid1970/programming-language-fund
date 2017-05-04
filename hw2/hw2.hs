@@ -91,6 +91,32 @@ getMacro _ [] = []
 getMacro n ((m,p):ms) | n == m = p
                       | otherwise = (getMacro n ms)
 
+data Cmd1 = Pen Mode
+          | MoveTo Int Int
+          | Seq Cmd1 Cmd1
+          deriving Show
+
+data Mode = Up | Down
+          deriving Show
+
+type State1 = (Mode, Int, Int)
+
+type Line = (Int, Int, Int, Int)
+
+type Lines = [Line]
+
+semS :: Cmd1 -> State1 -> (State1, Lines)
+semS (Pen m) (_, x, y)        = ((m, x, y), [])
+
+semS (MoveTo x' y') (m, x, y) = case m of Up   -> ((m, x', y'), [])
+                                          Down -> ((m, x', y'), [(x, y, x', y')])
+semS (Seq c c') (m, x, y)     = ((m'', x'', y''), (l' ++ l'')) where
+                                ((m', x', y'), l') = semS c (m, x, y)
+                                ((m'', x'', y''), l'') = semS c' (m', x', y')
+
+sem' :: Cmd1 -> Lines
+sem' c = l where
+         (s, l) = semS c (Up, 0, 0)
 
 {-
   test output:
