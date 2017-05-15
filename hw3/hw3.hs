@@ -127,8 +127,29 @@ rect (LR b b') | h == h'   = Just (bbox (LR b b'))
   TODO: #3
   goals:
 
-  a)
-  b)
-  c)
-  d)
+  a) 1) The type definitions for f and g are as follows:
+        f :: [a] -> a -> [a]
+        g :: [a] -> b -> [b]
+     2) f returns either x or a list containing y. For the return type to match
+        x must be defined as a list of y-type elements. Alternatively, g only
+        returns either a null list or a list of y-type elements. This means x can
+        hold any type while the function returns a list of y-type elements.
+     3) g is more general, because x and [y] don't need to be equivalent in terms
+        of type definition.
+     4) f and g have different types because f has a more rigid definition whereas
+        g allows some freedom in terms of parameter types.
+  b) shown below (h).
+  c) shown below (k)
+  d) no, because type b would be out of scope. Otherwise you could return a
+     constant, but that would return the type of the constant, not b.
+-}
+
+h bs ((a,b):ps) = [b]
+
+k x y = x $ y x
+
+{-
+    testing #3:
+    - :t h == h :: [t1] -> [(t, t1)] -> [t1]
+    - :t k == k :: (t1 -> t) -> ((t1 -> t) -> t1) -> t
 -}
