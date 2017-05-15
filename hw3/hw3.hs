@@ -140,8 +140,21 @@ rect (LR b b') | h == h'   = Just (bbox (LR b b'))
         g allows some freedom in terms of parameter types.
   b) shown below (h).
   c) shown below (k)
-  d) no, because type b would be out of scope. Otherwise you could return a
-     constant, but that would return the type of the constant, not b.
+  d) Yes it is possible to define a function that takes type a and returns something
+     of type b. However, this compromises type safety by turning type a into type b
+     using unsafe manipulations over the binary value of input a, transforming it
+     into something of type b. A function of this definition already exists and
+     is called unsafeCoerce.
+
+     A wrapper function could use the existing implemenation like so:
+     e.g.:
+     unsafeCoerce' = unsafeCoerce
+
+     Without using unsafeCoerce and maintaining typesafety I'd say no, because
+     type b would be out of scope. One could suggest returning a
+     constant b, but that would return the type of the constant, not b.
+     Implementing a function with definition a -> b wouldn't be possible in a
+     typesafe language.
 -}
 
 h bs ((a,b):ps) = [b]
