@@ -5,21 +5,28 @@
     - Griffin Gonsalves
 -}
 
+{-
+    #1. A rank-based type system for the stack language
+    goals:
+      - extend language (INC, SWAP, POP)
+      - add ranking types (Rank, CmdRank)
+      - add ranking functions (rankP, rankC, rank)
+      - add type checking semantics (semStatTC)
+
+    a) done below.
+    b) sem's type and definition can now be simplified from using Maybe Stack
+          and case switches because we do all of our type checking in semStatTC.
+          This allows cleaner definitions over a stack we have proven has a valid
+          rank so no statement results in an underflow.
+-}
+
 module HW3 where
 
-
---1. Rank-Based Type Systems for Stack Language
-
-type Prog   = [Cmd]
-type Prog2  = (Prog, State)
-type Stack  = [Int]
-type D      = Maybe Stack -> Maybe Stack
-type State  = (Macros, Maybe Stack)
-type Macros = [(String, Prog)]
-
-type Rank = Int
-type CmdRank = (Int, Int) --(cmd 1 would be (0,0) with 1 priority.)
-
+type Prog     = [Cmd]
+type Stack    = [Int]
+type D        = Stack -> Stack
+type Rank     = Int
+type CmdRank  = (Int, Int)
 
 data Cmd    = LD Int
             | ADD
@@ -30,112 +37,132 @@ data Cmd    = LD Int
             | POP Int
             deriving (Eq, Show)
 
-run :: Prog -> Maybe Stack
-run p = sem p (Just [])
+rankP :: Prog -> Maybe Rank
+rankP [] = Just 0
+rankP p  = rank p 0
+
+rank :: Prog -> Rank -> Maybe Rank
+rank [] r    = Just r
+rank (c:p) r = let (n,m) = rankC c
+               in if n <= r then rank p (r - n + m)
+                            else Nothing
+
+rankC :: Cmd -> CmdRank
+rankC (LD _)  = (0, 1)
+rankC (ADD)   = (2, 1)
+rankC (MULT)  = (2, 1)
+rankC (DUP)   = (1, 2)
+rankC (INC)   = (1, 1)
+rankC (SWAP)  = (2, 2)
+rankC (POP n) = (n, 0)
+
+semStatTC :: Prog -> Maybe Stack
+semStatTC p | (rankP p) >= Just 0 = Just (sem p [])
+            | otherwise           = Nothing
 
 sem :: Prog -> D
 sem [] xs = xs
 sem (c:cs) xs = sem cs (semCmd c xs)
 
 semCmd :: Cmd -> D
-semCmd (LD n) xs = case xs of Just xs        -> Just (n:xs)
-                              _              -> Nothing
-semCmd (ADD)  xs = case xs of Just (x:x':xs) -> Just ((x+x'):xs)
-                              _              -> Nothing
-semCmd (MULT) xs = case xs of Just (x:x':xs) -> Just ((x*x'):xs)
-                              _              -> Nothing
-semCmd (DUP)  xs = case xs of Just (x:xs)    -> Just (x:x:xs)
-                              _              -> Nothing
-
---a) define a function rankC that maps each stack operation to its rank.
---type checker-ish?
-rankC :: Cmd -> CmdRank
-rankC (LD i) = (0, 0) -- How to organize/prioritize ranks...
-rankC ADD = (0, 1)
-
-rankP :: Prog -> Maybe Rank
-rankP [] = Nothing
-
+semCmd (LD n)  xs        = n:xs
+semCmd (ADD)   (x:x':xs) = (x+x'):xs
+semCmd (MULT)  (x:x':xs) = (x*x'):xs
+semCmd (DUP)   (x:xs)    = x:x:xs
+semCmd (INC)   (x:xs)    = (x+1):xs
+semCmd (SWAP)  (x:x':xs) = x':x:xs
+semCmd (POP n) (xs)      | n > 0     = semCmd (POP (n-1)) (tail xs)
+                         | otherwise = xs
 {-
-  test output:
-  -- run [LD 3,DUP,ADD,DUP,MULT] == Just [36]
-  -- run [LD 3, ADD] == Nothing
-  -- run [] == Just []
+    testing #1:
+    - semStatTC [LD 1, DUP, INC, SWAP] == Just [1,2]
+    - semStatTC [LD 3, LD 4, MULT, INC, LD 4, DUP, DUP, POP 2, SWAP] == Just [13,4]
+-}
+-- ----------------------------------------------------------------
+{-
+   #2. Shape Language
+   goals:
+     - define a type checker of shape as it's resulting width/height.
+     - define a type checker of shape as only rectangles.
+
+   a) shown below (bbox definition).
+   b) shown below (rect definition).
 -}
 
+data Shape = X
+           | TD Shape Shape
+           | LR Shape Shape
+           deriving Show
+type BBox = (Int, Int)
 
-run2 :: Prog -> Maybe Stack
-run2 cs = sem2Wrapper (cs, ([],(Just [])))
 
-sem2Wrapper :: Prog2 -> Maybe Stack
-sem2Wrapper ([], (_, xs)) = xs
-sem2Wrapper (c:cs, s) = sem2Wrapper (cs, (semCmd2 c s))
+bbox :: Shape -> BBox
+bbox (X) = (1,1)
+bbox (TD b b') = (maximum [w,w'], h+h')
+                 where (w, h)   = bbox b
+                       (w', h') = bbox b'
+bbox (LR b b') = (w+w', maximum[h,h'])
+                 where (w, h)   = bbox b
+                       (w', h') = bbox b'
 
-sem2 :: Prog2 -> State
-sem2 ([], s) = s
-sem2 (c:cs, s) = sem2 (cs, (semCmd2 c s))
-
-semCmd2 :: Cmd -> State -> State
-semCmd2 (LD n) (ms, xs)      = case xs of Just xs          -> (ms, (Just (n:xs)))
-                                          _                -> (ms, Nothing)
-semCmd2 (ADD) (ms, xs)      = case xs of Just (x:x':xs)    -> (ms, (Just ((x+x'):xs)))
-                                         _                 -> (ms, Nothing)
-semCmd2 (MULT) (ms, xs)     = case xs of Just (x:x':xs)    -> (ms, (Just ((x*x'):xs)))
-                                         _                 -> (ms, Nothing)
-semCmd2 (DUP) (ms, xs)      = case xs of Just (x:xs)       -> (ms, (Just (x:x:xs)))
-                                         _                 -> (ms, Nothing)
-semCmd2 (DEF n p) (ms, xs) = ((n, p):ms, xs)
-semCmd2 (CALL n) (ms, xs)   = case (isMacro n ms) of True  -> (sem2((getMacro n ms),(ms,xs)))
-                                                     False -> (ms, Nothing)
-
-isMacro :: String -> Macros -> Bool
-isMacro _ [] = False
-isMacro n ((m, p):ms) | n == m = True
-                      | otherwise = isMacro n ms
-
-getMacro :: String -> Macros -> Prog
-getMacro _ [] = []
-getMacro n ((m, p):ms) | n == m = p
-                       | otherwise = (getMacro n ms)
+rect :: Shape -> Maybe BBox
+rect (X) = Just (1,1)
+rect (TD b b') | w == w'   = Just (bbox (TD b b'))
+               | otherwise =  Nothing
+               where (w,_)  = bbox b
+                     (w',_) = bbox b'
+rect (LR b b') | h == h'   = Just (bbox (LR b b'))
+               | otherwise =  Nothing
+               where (_,h)  = bbox b
+                     (_,h') = bbox b'
 
 {-
-  test output:
-  -- run2 [DEF "test" [LD 2, DUP, ADD], CALL "test"] == Just [4]
-  -- run2 [DEF "test" [LD 2, DUP, DEF "nest_test" [LD 4, MULT]], CALL "test", CALL "nest_test"] == Just [8,2]
+    testing #2:
+    - rect (TD X X) == Just (1,2)
+    - rect (LR (TD X X) (TD X X))  == Just (2,2)
+    - rect (LR (LR (TD X X) (TD X X)) X) == Nothing
+-}
+-- ----------------------------------------------------------------
+{-
+  TODO: #3
+  goals:
+
+  a) 1) The type definitions for f and g are as follows:
+        f :: [a] -> a -> [a]
+        g :: [a] -> b -> [b]
+     2) f returns either x or a list containing y. For the return type to match
+        x must be defined as a list of y-type elements. Alternatively, g only
+        returns either a null list or a list of y-type elements. This means x can
+        hold any type while the function returns a list of y-type elements.
+     3) g is more general, because x and [y] don't need to be equivalent in terms
+        of type definition.
+     4) f and g have different types because f has a more rigid definition whereas
+        g allows some freedom in terms of parameter types.
+  b) shown below (h).
+  c) shown below (k)
+  d) Yes it is possible to define a function that takes type a and returns something
+     of type b. However, this compromises type safety by turning type a into type b
+     using unsafe manipulations over the binary value of input a, transforming it
+     into something of type b. A function of this definition already exists and
+     is called unsafeCoerce.
+
+     A wrapper function could use the existing implemenation like so:
+     e.g.:
+     unsafeCoerce' = unsafeCoerce
+
+     Without using unsafeCoerce and maintaining typesafety I'd say no, because
+     type b would be out of scope. One could suggest returning a
+     constant b, but that would return the type of the constant, not b.
+     Implementing a function with definition a -> b wouldn't be possible in a
+     typesafe language.
 -}
 
--- 3. Extending MiniLogo
+h bs ((a,b):ps) = [b]
 
--- The semantics of a Mini Logo program is ultimately a set of drawn lines. However, for the definition of the semantics
--- a “drawing state” must be maintained that keeps track of the current position of the pen and the pen’s status (Up or
--- Down)
-
-data Cmd1 = Pen Mode
-          | MoveTo Int Int
-          | Seq Cmd1 Cmd1
-          deriving Show
-
-data Mode = Up | Down
-          deriving Show
-
-type State1 = (Mode, Int, Int)
-type Line = (Int, Int, Int, Int)
-type Lines = [Line]
-
-semS :: Cmd1 -> State1 -> (State1, Lines)
-semS (Pen m) (_, x, y)        = ((m, x, y), [])
-
-semS (MoveTo x' y') (m, x, y) = case m of Up   -> ((m, x', y'), [])
-                                          Down -> ((m, x', y'), [(x, y, x', y')])
-semS (Seq c c') (m, x, y)     = ((m'', x'', y''), (l' ++ l'')) where
-                                ((m', x', y'), l') = semS c (m, x, y)
-                                ((m'', x'', y''), l'') = semS c' (m', x', y')
-
-sem' :: Cmd1 -> Lines
-sem' c = l where
-         (s, l) = semS c (Up, 0, 0)
+k x y = x $ y x
 
 {-
-  test output:
-    -- sem' (Seq(Pen Down)(Seq(MoveTo 0 1)(Seq(MoveTo 1 1)(Pen Up)))) == [(0,0,0,1),(0,1,1,1)]
+    testing #3:
+    - :t h == h :: [t1] -> [(t, t1)] -> [t1]
+    - :t k == k :: (t1 -> t) -> ((t1 -> t) -> t1) -> t
 -}
