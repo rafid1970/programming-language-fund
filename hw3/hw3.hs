@@ -124,7 +124,7 @@ rect (LR b b') | h == h'   = Just (bbox (LR b b'))
 -}
 -- ----------------------------------------------------------------
 {-
-  TODO: #3
+  #3. Parametric Polymorphism
   goals:
 
   a) 1) The type definitions for f and g are as follows:
