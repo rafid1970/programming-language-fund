@@ -120,7 +120,7 @@ rect (LR b b') | h == h'   = Just (bbox (LR b b'))
     testing #2:
     - rect (TD X X) == Just (1,2)
     - rect (LR (TD X X) (TD X X))  == Just (2,2)
-    - *HW3> rect (LR (LR (TD X X) (TD X X)) X) == Nothing
+    - rect (LR (LR (TD X X) (TD X X)) X) == Nothing
 -}
 -- ----------------------------------------------------------------
 {-
