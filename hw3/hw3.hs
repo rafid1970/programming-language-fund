@@ -157,12 +157,12 @@ rect (LR b b') | h == h'   = Just (bbox (LR b b'))
      typesafe language.
 -}
 
-h bs ((a,b):ps) = [b]
+h bs ((a,b):ps) = b:bs
 
 k x y = x $ y x
 
 {-
     testing #3:
-    - :t h == h :: [t1] -> [(t, t1)] -> [t1]
+    - :t h == h :: [a] -> [(t, a)] -> [a]
     - :t k == k :: (t1 -> t) -> ((t1 -> t) -> t1) -> t
 -}
